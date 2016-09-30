@@ -59,13 +59,14 @@ DVRoutingProtocol::GetTypeId (void)
 }
 
 DVRoutingProtocol::DVRoutingProtocol ()
-  : m_auditPingsTimer (Timer::CANCEL_ON_DESTROY)
+  : m_auditPingsTimer (Timer::CANCEL_ON_DESTROY),
+  m_nbTimer (Timer::CANCEL_ON_DESTROY)
 {
   RandomVariable random;
   SeedManager::SetSeed (time (NULL));
   random = UniformVariable (0x00000000, 0xFFFFFFFF);
   m_currentSequenceNumber = random.GetInteger ();
-  // Setup static routing 
+  // Setup static routing
   m_staticRouting = Create<Ipv4StaticRouting> ();
 }
 
@@ -73,7 +74,7 @@ DVRoutingProtocol::~DVRoutingProtocol ()
 {
 }
 
-void 
+void
 DVRoutingProtocol::DoDispose ()
 {
   // Close sockets
@@ -83,14 +84,14 @@ DVRoutingProtocol::DoDispose ()
       iter->first->Close ();
     }
   m_socketAddresses.clear ();
-  
+
   // Clear static routing
   m_staticRouting = 0;
 
   // Cancel timers
   m_auditPingsTimer.Cancel ();
- 
-  m_pingTracker.clear (); 
+
+  m_pingTracker.clear ();
 
   GURoutingProtocol::DoDispose ();
 }
@@ -118,7 +119,7 @@ DVRoutingProtocol::ResolveNodeIpAddress (uint32_t nodeNumber)
 {
   std::map<uint32_t, Ipv4Address>::iterator iter = m_nodeAddressMap.find (nodeNumber);
   if (iter != m_nodeAddressMap.end ())
-    { 
+    {
       return iter->second;
     }
   return Ipv4Address::GetAny ();
@@ -129,10 +130,10 @@ DVRoutingProtocol::ReverseLookup (Ipv4Address ipAddress)
 {
   std::map<Ipv4Address, uint32_t>::iterator iter = m_addressNodeMap.find (ipAddress);
   if (iter != m_addressNodeMap.end ())
-    { 
+    {
       std::ostringstream sin;
       uint32_t nodeNumber = iter->second;
-      sin << nodeNumber;    
+      sin << nodeNumber;
       return sin.str();
     }
   return "Unknown";
@@ -163,9 +164,11 @@ DVRoutingProtocol::DoStart ()
     }
   // Configure timers
   m_auditPingsTimer.SetFunction (&DVRoutingProtocol::AuditPings, this);
+  m_nbTimer.SetFunction (&DVRoutingProtocol::SendNbHb, this);
 
   // Start timers
   m_auditPingsTimer.Schedule (m_pingTimeout);
+  m_nbTimer.Schedule (m_nbTimeout);
 
 }
 
@@ -184,10 +187,10 @@ DVRoutingProtocol::RouteOutput (Ptr<Packet> packet, const Ipv4Header &header, Pt
   return ipv4Route;
 }
 
-bool 
-DVRoutingProtocol::RouteInput  (Ptr<const Packet> packet, 
-  const Ipv4Header &header, Ptr<const NetDevice> inputDev,                            
-  UnicastForwardCallback ucb, MulticastForwardCallback mcb,             
+bool
+DVRoutingProtocol::RouteInput  (Ptr<const Packet> packet,
+  const Ipv4Header &header, Ptr<const NetDevice> inputDev,
+  UnicastForwardCallback ucb, MulticastForwardCallback mcb,
   LocalDeliverCallback lcb, ErrorCallback ecb)
 {
   Ipv4Address destinationAddress = header.GetDestination ();
@@ -243,7 +246,7 @@ DVRoutingProtocol::ProcessCommand (std::vector<std::string> tokens)
     {
       if (tokens.size() < 3)
         {
-          ERROR_LOG ("Insufficient PING params..."); 
+          ERROR_LOG ("Insufficient PING params...");
           return;
         }
       iterator++;
@@ -413,7 +416,7 @@ DVRoutingProtocol::AuditPings ()
         }
     }
   // Rechedule timer
-  m_auditPingsTimer.Schedule (m_pingTimeout); 
+  m_auditPingsTimer.Schedule (m_pingTimeout);
 }
 
 uint32_t
@@ -422,22 +425,22 @@ DVRoutingProtocol::GetNextSequenceNumber ()
   return m_currentSequenceNumber++;
 }
 
-void 
+void
 DVRoutingProtocol::NotifyInterfaceUp (uint32_t i)
 {
   m_staticRouting->NotifyInterfaceUp (i);
 }
-void 
+void
 DVRoutingProtocol::NotifyInterfaceDown (uint32_t i)
 {
   m_staticRouting->NotifyInterfaceDown (i);
 }
-void 
+void
 DVRoutingProtocol::NotifyAddAddress (uint32_t interface, Ipv4InterfaceAddress address)
 {
   m_staticRouting->NotifyAddAddress (interface, address);
 }
-void 
+void
 DVRoutingProtocol::NotifyRemoveAddress (uint32_t interface, Ipv4InterfaceAddress address)
 {
   m_staticRouting->NotifyRemoveAddress (interface, address);

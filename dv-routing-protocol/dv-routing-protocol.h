@@ -67,7 +67,7 @@ class DVRoutingProtocol : public GURoutingProtocol
      * \param nodeAddressMap Mapping.
      */
 
-    virtual void SetNodeAddressMap (std::map<uint32_t, Ipv4Address> nodeAddressMap); 
+    virtual void SetNodeAddressMap (std::map<uint32_t, Ipv4Address> nodeAddressMap);
     /**
      * \brief Save the mapping from IP addresses to Inet topology node numbers.
      *
@@ -91,7 +91,7 @@ class DVRoutingProtocol : public GURoutingProtocol
 
     // Periodic Audit
     void AuditPings ();
-  
+
     // From Ipv4RoutingProtocol
 
     /**
@@ -102,11 +102,11 @@ class DVRoutingProtocol : public GURoutingProtocol
      * multicast or unicast.  The Linux equivalent is ip_route_output()
      *
      * \param p packet to be routed.  Note that this method may modify the packet.
-     *          Callers may also pass in a null pointer. 
+     *          Callers may also pass in a null pointer.
      * \param header input parameter (used to form key to search for the route)
      * \param oif Output interface Netdevice.  May be zero, or may be bound via
      *            socket options to a particular output interface.
-     * \param sockerr Output parameter; socket errno 
+     * \param sockerr Output parameter; socket errno
      *
      * \returns a code that indicates what happened in the lookup
      */
@@ -129,12 +129,12 @@ class DVRoutingProtocol : public GURoutingProtocol
      * \param lcb Callback for the case in which the packet is to be locally
      *            delivered
      * \param ecb Callback to call if there is an error in forwarding
-     * \returns true if the Ipv4RoutingProtocol takes responsibility for 
+     * \returns true if the Ipv4RoutingProtocol takes responsibility for
      *          forwarding or delivering the packet, false otherwise
-     */ 
+     */
      virtual bool RouteInput  (Ptr<const Packet> p, const Ipv4Header &header, Ptr<const NetDevice> idev,
                                UnicastForwardCallback ucb, MulticastForwardCallback mcb,
-                                 LocalDeliverCallback lcb, ErrorCallback ecb); 
+                                 LocalDeliverCallback lcb, ErrorCallback ecb);
     /**
      * \param interface the index of the interface we are being notified about
      *
@@ -173,7 +173,7 @@ class DVRoutingProtocol : public GURoutingProtocol
     virtual void NotifyRemoveAddress (uint32_t interface, Ipv4InterfaceAddress address);
     /**
      * \param ipv4 the ipv4 object this routing protocol is being associated with
-     * 
+     *
      * Typically, invoked directly or indirectly from ns3::Ipv4::SetRoutingProtocol
      */
     virtual void SetIpv4 (Ptr<Ipv4> ipv4);
@@ -194,7 +194,7 @@ class DVRoutingProtocol : public GURoutingProtocol
      *
      * \param nodeNumber Node Number as in Inet topology.
      */
-    virtual Ipv4Address ResolveNodeIpAddress (uint32_t nodeNumber);    
+    virtual Ipv4Address ResolveNodeIpAddress (uint32_t nodeNumber);
     /**
      * \brief Returns the node number which is using the specified IP.
      *
@@ -203,9 +203,9 @@ class DVRoutingProtocol : public GURoutingProtocol
      * \param ipv4Address IP address of node.
      */
 
-    virtual std::string ReverseLookup (Ipv4Address ipv4Address); 
-    
-    // Status 
+    virtual std::string ReverseLookup (Ipv4Address ipv4Address);
+
+    // Status
     void DumpNeighbors ();
     void DumpRoutingTable ();
 
@@ -214,7 +214,7 @@ class DVRoutingProtocol : public GURoutingProtocol
     uint32_t GetNextSequenceNumber ();
     /**
      * \brief Check whether the specified IP is owned by this node.
-     * 
+     *
      * \param ipv4Address IP address.
      */
     bool IsOwnAddress (Ipv4Address originatorAddress);
@@ -226,6 +226,8 @@ class DVRoutingProtocol : public GURoutingProtocol
     Ptr<Ipv4StaticRouting> m_staticRouting;
     Ptr<Ipv4> m_ipv4;
     Time m_pingTimeout;
+    Time m_NbhbTimeout;
+    Time m_nbTimeout;
     uint8_t m_maxTTL;
     uint16_t m_dvPort;
     uint32_t m_currentSequenceNumber;
@@ -233,8 +235,11 @@ class DVRoutingProtocol : public GURoutingProtocol
     std::map<Ipv4Address, uint32_t> m_addressNodeMap;
     // Timers
     Timer m_auditPingsTimer;
+    Timer m_NbhbTimer;
+    Timer m_auditNbTimer;
     // Ping tracker
     std::map<uint32_t, Ptr<PingRequest> > m_pingTracker;
+    std::map<uint32_t, Time> m_nbTracker;
 };
 
 #endif

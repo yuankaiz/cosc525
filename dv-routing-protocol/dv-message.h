@@ -37,7 +37,8 @@ class DVMessage : public Header
       {
         PING_REQ = 1,
         PING_RSP = 2,
-        // Define extra message types when needed       
+        NB_HB = 3,
+        // Define extra message types when needed
       };
 
     DVMessage (DVMessage::MessageType messageType, uint32_t sequenceNumber, uint8_t ttl, Ipv4Address originatorAddress);
@@ -70,18 +71,18 @@ class DVMessage : public Header
      */
     void SetOriginatorAddress (Ipv4Address originatorAddress);
 
-    /** 
+    /**
      *  \returns Originator IPV4 address
      */
     Ipv4Address GetOriginatorAddress () const;
 
     /**
-     *  \brief Sets Time To Live of the message 
+     *  \brief Sets Time To Live of the message
      *  \param ttl TTL of the message
      */
     void SetTTL (uint8_t ttl);
 
-    /** 
+    /**
      *  \returns TTL of the message
      */
     uint8_t GetTTL () const;
@@ -105,7 +106,7 @@ class DVMessage : public Header
     void Serialize (Buffer::Iterator start) const;
     uint32_t Deserialize (Buffer::Iterator start);
 
-    
+
     struct PingReq
       {
         void Print (std::ostream &os) const;
@@ -128,14 +129,25 @@ class DVMessage : public Header
         std::string pingMessage;
       };
 
+    struct NbHb
+      {
+        void Print (std::ostream &os) const;
+        uint32_t GetSerializedSize (void) const;
+        void Serialize (Buffer::Iterator &start) const;
+        uint32_t Deserialize (Buffer::Iterator &start);
+        // Payload
+        Ipv4Address destinationAddress;
+        std::string nodeId;
+      };
 
   private:
     struct
       {
         PingReq pingReq;
         PingRsp pingRsp;
+        NbHb nbHb;
       } m_message;
-    
+
   public:
     /**
      *  \returns PingReq Struct
@@ -159,6 +171,8 @@ class DVMessage : public Header
      */
     void SetPingRsp (Ipv4Address destinationAddress, std::string message);
 
+    NbHb GetNbHb ();
+    void SetNbHb (Ipv4Address destinationAddress, std::string nodeId);
 }; // class DVMessage
 
 static inline std::ostream& operator<< (std::ostream& os, const DVMessage& message)

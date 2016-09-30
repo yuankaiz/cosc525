@@ -38,7 +38,7 @@ DVMessage::DVMessage (DVMessage::MessageType messageType, uint32_t sequenceNumbe
   m_originatorAddress = originatorAddress;
 }
 
-TypeId 
+TypeId
 DVMessage::GetTypeId (void)
 {
   static TypeId tid = TypeId ("DVMessage")
@@ -68,6 +68,9 @@ DVMessage::GetSerializedSize (void) const
       case PING_RSP:
         size += m_message.pingRsp.GetSerializedSize ();
         break;
+      case NB_HB:
+        size += m_message.nbHb.GetSerializedSize ();
+        break;
       default:
         NS_ASSERT (false);
     }
@@ -83,7 +86,7 @@ DVMessage::Print (std::ostream &os) const
   os << "ttl: " << m_ttl << "\n";
   os << "originatorAddress: " << m_originatorAddress << "\n";
   os << "PAYLOAD:: \n";
-  
+
   switch (m_messageType)
     {
       case PING_REQ:
@@ -92,8 +95,11 @@ DVMessage::Print (std::ostream &os) const
       case PING_RSP:
         m_message.pingRsp.Print (os);
         break;
+      case NB_HB:
+        m_message.nbHb.Print (os);
+        break;
       default:
-        break;  
+        break;
     }
   os << "\n****END OF MESSAGE****\n";
 }
@@ -115,12 +121,15 @@ DVMessage::Serialize (Buffer::Iterator start) const
       case PING_RSP:
         m_message.pingRsp.Serialize (i);
         break;
+      case NB_HB:
+        m_message.nbHb.Serialize (i);
+        break;
       default:
-        NS_ASSERT (false);   
+        NS_ASSERT (false);
     }
 }
 
-uint32_t 
+uint32_t
 DVMessage::Deserialize (Buffer::Iterator start)
 {
   uint32_t size;
@@ -140,6 +149,9 @@ DVMessage::Deserialize (Buffer::Iterator start)
       case PING_RSP:
         size += m_message.pingRsp.Deserialize (i);
         break;
+      case NB_HB:
+        size += m_message.nbHb.Deserialize (i);
+        break;
       default:
         NS_ASSERT (false);
     }
@@ -148,7 +160,7 @@ DVMessage::Deserialize (Buffer::Iterator start)
 
 /* PING_REQ */
 
-uint32_t 
+uint32_t
 DVMessage::PingReq::GetSerializedSize (void) const
 {
   uint32_t size;
@@ -172,7 +184,7 @@ DVMessage::PingReq::Serialize (Buffer::Iterator &start) const
 
 uint32_t
 DVMessage::PingReq::Deserialize (Buffer::Iterator &start)
-{  
+{
   destinationAddress = Ipv4Address (start.ReadNtohU32 ());
   uint16_t length = start.ReadU16 ();
   char* str = (char*) malloc (length);
@@ -205,7 +217,7 @@ DVMessage::GetPingReq ()
 
 /* PING_RSP */
 
-uint32_t 
+uint32_t
 DVMessage::PingRsp::GetSerializedSize (void) const
 {
   uint32_t size;
@@ -229,7 +241,7 @@ DVMessage::PingRsp::Serialize (Buffer::Iterator &start) const
 
 uint32_t
 DVMessage::PingRsp::Deserialize (Buffer::Iterator &start)
-{  
+{
   destinationAddress = Ipv4Address (start.ReadNtohU32 ());
   uint16_t length = start.ReadU16 ();
   char* str = (char*) malloc (length);
@@ -260,6 +272,62 @@ DVMessage::GetPingRsp ()
   return m_message.pingRsp;
 }
 
+/* NB_HB */
+
+uint32_t
+DVMessage::NbHb::GetSerializedSize (void) const
+{
+  uint32_t size;
+  size = IPV4_ADDRESS_SIZE + sizeof(uint16_t) + nodeId.length();
+  return size;
+}
+
+void
+DVMessage::NbHb::Print (std::ostream &os) const
+{
+  os << "NbHb:: Message: " << nodeId << "\n";
+}
+
+void
+DVMessage::NbHb::Serialize (Buffer::Iterator &start) const
+{
+  start.WriteHtonU32 (destinationAddress.Get ());
+  start.WriteU16 (nodeId.length ());
+  start.Write ((uint8_t *) (const_cast<char*> (nodeId.c_str())), nodeId.length());
+}
+
+uint32_t
+DVMessage::NbHb::Deserialize (Buffer::Iterator &start)
+{
+  destinationAddress = Ipv4Address (start.ReadNtohU32 ());
+  uint16_t length = start.ReadU16 ();
+  char* str = (char*) malloc (length);
+  start.Read ((uint8_t*)str, length);
+  nodeId = std::string (str, length);
+  free (str);
+  return NbHb::GetSerializedSize ();
+}
+
+void
+DVMessage::SetNbHb (Ipv4Address destinationAddress, std::string nodeId)
+{
+  if (m_messageType == 0)
+    {
+      m_messageType = NB_HB;
+    }
+  else
+    {
+      NS_ASSERT (m_messageType == NB_HB);
+    }
+  m_message.nbHb.destinationAddress = destinationAddress;
+  m_message.nbHb.nodeId = nodeId;
+}
+
+DVMessage::NbHb
+DVMessage::GetNbHb ()
+{
+  return m_message.nbHb;
+}
 
 //
 //
@@ -283,7 +351,7 @@ DVMessage::SetSequenceNumber (uint32_t sequenceNumber)
   m_sequenceNumber = sequenceNumber;
 }
 
-uint32_t 
+uint32_t
 DVMessage::GetSequenceNumber (void) const
 {
   return m_sequenceNumber;
@@ -295,7 +363,7 @@ DVMessage::SetTTL (uint8_t ttl)
   m_ttl = ttl;
 }
 
-uint8_t 
+uint8_t
 DVMessage::GetTTL (void) const
 {
   return m_ttl;
@@ -312,4 +380,3 @@ DVMessage::GetOriginatorAddress (void) const
 {
   return m_originatorAddress;
 }
-
